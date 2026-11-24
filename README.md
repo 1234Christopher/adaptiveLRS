@@ -25,6 +25,20 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Book-based AI quizzes
+
+The Books tab has a dropdown containing all 46 programs. Select a course to see its free learning resources; related programs may share foundational open textbooks.
+
+Quizzes are generated on the server from the public book or chapter URL selected in the app. Each quiz must contain at least 20 distinct questions. The source must be publicly accessible over HTTPS and hosted on the selected book's domain; direct chapter pages and PDFs work better than book landing pages.
+
+For local development, create a root `.env.local` file with a Groq API key:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+```
+
+`.env.local` is ignored by Git. Never put this key in an `EXPO_PUBLIC_` variable or in client code. Run `npm start`; the app calls the `src/app/api/generate-quiz+api.ts` server route. Production deployments must configure `GROQ_API_KEY` as a server-side secret on the hosting provider. The route uses Groq's `openai/gpt-oss-20b` model with browser search; an optional `GROQ_MODEL` server variable can override the model with one that supports Groq browser search. Add authentication and rate limiting before exposing quiz generation publicly.
+
 ## Get a fresh project
 
 When you're ready, run:

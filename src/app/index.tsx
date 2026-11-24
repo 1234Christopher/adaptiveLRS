@@ -1,15 +1,29 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
+import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { useState } from "react";
-import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { COURSES, type Book } from "@/data/courses";
+import { MINIMUM_QUIZ_QUESTIONS, parseQuizQuestions, type QuizQuestion } from "@/utils/quiz";
 
 // System badge (save the image at assets/images/tcl-badge.png)
 const BADGE = require("@/assets/images/tcl-badge.png");
 
 // Change the current user's details here
 const USER = {
-  name: "Your Name",
-  email: "yourname@example.com",
+  name: "Christopher Divine",
+  email: "divinechrstopher54@gmail.com",
   role: "Student",
   id: "TCL-0001",
 };
@@ -20,15 +34,15 @@ const ABOUT = {
   name: "TCL Adaptive Learning Recommendation System",
   tagline: "Learn · Practice · Improve",
   description:
-    "TCL is an adaptive learning platform that helps students find free, legal textbooks for their course, track their reading progress, and test what they have learned with weekly quizzes. Everything is tracked on one dashboard, so students can see how they are improving and what to study next.",
+    "TCL is an adaptive learning platform that helps students find free, legal textbooks for their course, track their reading progress, and test what they have learned with AI-generated, book-based quizzes. Everything is tracked on one dashboard, so students can see how they are improving and what to study next.",
   features: [
-    "Free open textbooks for six courses",
+    "Free open textbooks for 46 courses",
     "Reading progress tracking",
-    "Weekly quizzes with instant scoring",
+    "AI-generated quizzes with at least 20 questions per course",
     "Personal student dashboard",
   ],
 };
-const PRODUCERS = ["Christopher Divine", "Tejiri", "Lawrence"];
+const PRODUCERS = ["Divine", "Tejiri", "Lawrence"];
 
 // Footer details: edit these to update the footer shown at the bottom of every page
 const FOOTER = {
@@ -36,7 +50,7 @@ const FOOTER = {
   addressLines: ["Ilishan-Remo, Ogun State,", "Nigeria."],
   mapQuery: "Babcock University, Ilishan-Remo, Ogun State, Nigeria",
   phone: "09169800924",
-  email: "yourname@example.com", // change to the team's real email
+  email: "divinechristopher54@gamil.com",
   website: "https://www.babcock.edu.ng",
   websiteLabel: "www.babcock.edu.ng",
   project: "Final Year Project",
@@ -44,168 +58,22 @@ const FOOTER = {
 };
 
 const TABS = ["Books", "Weekly Quiz", "Continue Reading", "Student Dashboard", "Admin", "About"];
-
-// Every book has a direct "url" to a free, legal version (open textbook,
-// author's own website, or open-access publication). No sign-up or payment needed.
-type Book = { title: string; author: string; url: string; source: string };
-
-const COURSES: Record<string, Book[]> = {
-  "Computer Science": [
-    {
-      title: "Think Python",
-      author: "Allen B. Downey",
-      url: "https://allendowney.github.io/ThinkPython/",
-      source: "Author's website",
-    },
-    {
-      title: "Automate the Boring Stuff with Python",
-      author: "Al Sweigart",
-      url: "https://automatetheboringstuff.com/",
-      source: "Author's website",
-    },
-    {
-      title: "Algorithms",
-      author: "Jeff Erickson",
-      url: "https://jeffe.cs.illinois.edu/teaching/algorithms/",
-      source: "Author's website",
-    },
-  ],
-  Mathematics: [
-    {
-      title: "Book of Proof",
-      author: "Richard Hammack",
-      url: "https://www.people.vcu.edu/~rhammack/BookofProof/",
-      source: "Author's website",
-    },
-    {
-      title: "Calculus Volume 1",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/calculus-volume-1",
-      source: "OpenStax",
-    },
-    {
-      title: "Linear Algebra Done Right",
-      author: "Sheldon Axler",
-      url: "https://linear.axler.net/",
-      source: "Open access edition",
-    },
-  ],
-  Physics: [
-    {
-      title: "University Physics Volume 1",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/university-physics-volume-1",
-      source: "OpenStax",
-    },
-    {
-      title: "University Physics Volume 3",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/university-physics-volume-3",
-      source: "OpenStax",
-    },
-    {
-      title: "The Feynman Lectures on Physics",
-      author: "Feynman, Leighton & Sands",
-      url: "https://www.feynmanlectures.caltech.edu/",
-      source: "Caltech",
-    },
-  ],
-  Business: [
-    {
-      title: "Principles of Management",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/principles-management",
-      source: "OpenStax",
-    },
-    {
-      title: "Principles of Marketing",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/principles-marketing",
-      source: "OpenStax",
-    },
-    {
-      title: "Entrepreneurship",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/entrepreneurship",
-      source: "OpenStax",
-    },
-  ],
-  Psychology: [
-    {
-      title: "Psychology 2e",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/psychology-2e",
-      source: "OpenStax",
-    },
-    {
-      title: "Noba Introduction to Psychology",
-      author: "Noba Project",
-      url: "https://nobaproject.com/",
-      source: "Noba Project",
-    },
-    {
-      title: "Cognitive Psychology and Cognitive Neuroscience",
-      author: "Wikibooks contributors",
-      url: "https://en.wikibooks.org/wiki/Cognitive_Psychology_and_Cognitive_Neuroscience",
-      source: "Wikibooks",
-    },
-  ],
-  Economics: [
-    {
-      title: "Principles of Economics 3e",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/principles-economics-3e",
-      source: "OpenStax",
-    },
-    {
-      title: "Principles of Microeconomics 3e",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/principles-microeconomics-3e",
-      source: "OpenStax",
-    },
-    {
-      title: "Principles of Macroeconomics 3e",
-      author: "OpenStax",
-      url: "https://openstax.org/details/books/principles-macroeconomics-3e",
-      source: "OpenStax",
-    },
-  ],
+const ICONS: Record<string, SymbolViewProps["name"]> = {
+  Books: { ios: "book.closed.fill", android: "menu_book", web: "menu_book" },
+  "Weekly Quiz": { ios: "questionmark.circle.fill", android: "quiz", web: "quiz" },
+  "Continue Reading": { ios: "book.fill", android: "auto_stories", web: "auto_stories" },
+  "Student Dashboard": { ios: "chart.bar.fill", android: "dashboard", web: "dashboard" },
+  Admin: { ios: "gearshape.fill", android: "settings", web: "settings" },
+  About: { ios: "info.circle.fill", android: "info", web: "info" },
+  author: { ios: "person.fill", android: "person", web: "person" },
+  course: { ios: "graduationcap.fill", android: "school", web: "school" },
+  source: { ios: "link", android: "link", web: "link" },
+  openBook: { ios: "arrow.up.right.square", android: "open_in_new", web: "open_in_new" },
 };
 
-// Weekly quizzes, one set per course: edit these each week
-// "answer" is the position of the correct option, counting from 0
-const QUIZZES: Record<string, { q: string; options: string[]; answer: number }[]> = {
-  "Computer Science": [
-    { q: "What does CPU stand for?", options: ["Central Processing Unit", "Computer Personal Unit", "Central Program Utility"], answer: 0 },
-    { q: "Which data structure works first in, first out?", options: ["Stack", "Queue", "Tree"], answer: 1 },
-    { q: "Which language is mainly used to style web pages?", options: ["SQL", "Python", "CSS"], answer: 2 },
-  ],
-  Mathematics: [
-    { q: "What is the derivative of x²?", options: ["x", "2x", "x²"], answer: 1 },
-    { q: "What is the determinant of a 2x2 identity matrix?", options: ["0", "2", "1"], answer: 2 },
-    { q: "What do the angles of a triangle add up to?", options: ["180°", "360°", "90°"], answer: 0 },
-  ],
-  Physics: [
-    { q: "What is the SI unit of force?", options: ["Joule", "Newton", "Watt"], answer: 1 },
-    { q: "Which law is written F = ma?", options: ["Newton's first law", "Newton's third law", "Newton's second law"], answer: 2 },
-    { q: "About how fast does light travel?", options: ["3 × 10⁸ m/s", "3 × 10⁵ m/s", "3 × 10³ m/s"], answer: 0 },
-  ],
-  Business: [
-    { q: "What does ROI stand for?", options: ["Rate of Income", "Return on Investment", "Review of Inventory"], answer: 1 },
-    { q: "Which of these is NOT one of the 4 Ps of marketing?", options: ["Price", "Promotion", "Profit"], answer: 2 },
-    { q: "What does a balance sheet show?", options: ["Assets, liabilities and equity", "Daily sales only", "Staff schedules"], answer: 0 },
-  ],
-  Psychology: [
-    { q: "Who is known as the father of psychoanalysis?", options: ["Sigmund Freud", "B. F. Skinner", "Carl Rogers"], answer: 0 },
-    { q: "Pavlov is linked to which kind of conditioning?", options: ["Operant", "Classical", "Social"], answer: 1 },
-    { q: "Which of these is a research method in psychology?", options: ["Auditing", "Compiling", "Case study"], answer: 2 },
-  ],
-  Economics: [
-    { q: "What does GDP stand for?", options: ["Gross Domestic Product", "General Demand Price", "Global Debt Percentage"], answer: 0 },
-    { q: "If demand rises and supply stays the same, price usually...", options: ["Falls", "Rises", "Stays zero"], answer: 1 },
-    { q: "What is inflation?", options: ["A fall in unemployment", "A rise in exports", "A general rise in prices"], answer: 2 },
-  ],
-};
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 // Every book with its course, used to track reading progress
 const ALL_BOOKS = Object.entries(COURSES).flatMap(([course, list]) =>
@@ -291,22 +159,30 @@ function Footer({ onNavigate }: { onNavigate: (tab: string) => void }) {
 export default function Index() {
   const [tab, setTab] = useState("Books");
   const [course, setCourse] = useState("");
+  const [showCoursePicker, setShowCoursePicker] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [quizCourse, setQuizCourse] = useState("");
-  const [scores, setScores] = useState<Record<string, number>>({});
+  const [quizBook, setQuizBook] = useState<Book | null>(null);
+  const [quizSourceUrl, setQuizSourceUrl] = useState("");
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizError, setQuizError] = useState("");
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [scores, setScores] = useState<Record<string, { score: number; total: number }>>({});
   const [showProfile, setShowProfile] = useState(false);
   const [progress, setProgress] = useState<Record<string, number>>({});
 
-  const questions = quizCourse ? QUIZZES[quizCourse] : [];
+  const questions = quizQuestions;
   const score = questions.filter((q, i) => answers[i] === q.answer).length;
-  const totalQuizzes = Object.keys(QUIZZES).length;
+  const totalQuizzes = Object.keys(COURSES).length;
   const quizzesTaken = Object.keys(scores).length;
   const avgQuiz =
     quizzesTaken === 0
       ? null
       : Math.round(
-          (Object.entries(scores).reduce((sum, [c, v]) => sum + v / QUIZZES[c].length, 0) / quizzesTaken) * 100
+          (Object.values(scores).reduce((sum, result) => sum + result.score / result.total, 0) /
+            quizzesTaken) *
+            100
         );
   const totalBooks = Object.values(COURSES).reduce((sum, list) => sum + list.length, 0);
 
@@ -335,12 +211,72 @@ export default function Index() {
 
   const openQuiz = (name: string) => {
     setQuizCourse(name);
+    setQuizBook(null);
+    setQuizSourceUrl("");
+    setQuizQuestions([]);
+    setQuizError("");
     setAnswers({});
     setSubmitted(false);
   };
+  const chooseQuizBook = (book: Book) => {
+    setQuizBook(book);
+    setQuizSourceUrl(book.url);
+    setQuizQuestions([]);
+    setQuizError("");
+    setAnswers({});
+    setSubmitted(false);
+  };
+  const generateQuiz = async () => {
+    if (!quizBook) {
+      setQuizError("Choose a book before generating a quiz.");
+      return;
+    }
+
+    setIsGeneratingQuiz(true);
+    setQuizError("");
+    setQuizQuestions([]);
+    setAnswers({});
+    setSubmitted(false);
+
+    try {
+      const response = await fetch("/api/generate-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course: quizCourse,
+          bookTitle: quizBook.title,
+          sourceUrl: quizSourceUrl.trim(),
+        }),
+      });
+      let payload: unknown;
+      try {
+        payload = await response.json();
+      } catch {
+        throw new Error("The quiz service returned an invalid response.");
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          isRecord(payload) && typeof payload.error === "string"
+            ? payload.error
+            : "Unable to generate a quiz. Please try again."
+        );
+      }
+      const generatedQuestions = isRecord(payload) ? parseQuizQuestions(payload.questions) : null;
+      if (!generatedQuestions) {
+        throw new Error(`The quiz service must return at least ${MINIMUM_QUIZ_QUESTIONS} valid questions.`);
+      }
+
+      setQuizQuestions(generatedQuestions);
+    } catch (error) {
+      setQuizError(error instanceof Error ? error.message : "Unable to generate a quiz. Please try again.");
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
+  };
   const submitQuiz = () => {
     setSubmitted(true);
-    setScores({ ...scores, [quizCourse]: score });
+    setScores({ ...scores, [quizCourse]: { score, total: questions.length } });
   };
   const resetQuiz = () => {
     setAnswers({});
@@ -367,52 +303,77 @@ export default function Index() {
           </Pressable>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      </View>
+
+      <View style={styles.tabBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsContainer}
+        >
           {TABS.map((name) => (
             <Pressable
               key={name}
               onPress={() => setTab(name)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === name }}
               style={[styles.tab, tab === name && styles.tabActive]}
             >
+              <SymbolView
+                name={ICONS[name]}
+                size={16}
+                tintColor={tab === name ? "#fff" : "#cbd5e0"}
+                accessible={false}
+              />
               <Text style={tab === name ? styles.tabTextActive : styles.tabText}>{name}</Text>
             </Pressable>
           ))}
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.container}>
         {/* BOOKS */}
         {tab === "Books" && (
           <>
-            <Text style={styles.title}>What are you studying?</Text>
-            <View style={styles.row}>
-              {Object.keys(COURSES).map((name) => (
-                <Pressable
-                  key={name}
-                  onPress={() => setCourse(name)}
-                  style={[styles.chip, course === name && styles.chipActive]}
-                >
-                  <Text style={course === name ? styles.chipTextActive : styles.chipText}>{name}</Text>
-                </Pressable>
-              ))}
-            </View>
-            {course === "" ? (
-              <Text style={styles.hint}>Pick a course to see free books you can read right now.</Text>
-            ) : (
+            <Text style={[styles.title, styles.centeredText]}>What are you studying?</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={course ? `Selected course: ${course}` : "Choose a course"}
+              accessibilityHint="Opens the list of available courses"
+              onPress={() => setShowCoursePicker(true)}
+              style={styles.courseDropdown}
+            >
+              <Text style={course ? styles.courseDropdownText : styles.courseDropdownPlaceholder}>
+                {course || "Choose a course"}
+              </Text>
+              <Text style={styles.courseDropdownArrow}>⌄</Text>
+            </Pressable>
+            <Text style={[styles.hint, styles.centeredText, styles.courseHint]}>
+              Please choose a course of your study.
+            </Text>
+            {course !== "" && (
               COURSES[course].map((book) => {
                 const p = progress[book.title];
                 return (
-                  <View key={book.title} style={styles.card}>
-                    <Text style={styles.bookTitle}>{book.title}</Text>
-                    <Text style={styles.author}>{book.author}</Text>
-                    <View style={styles.freeBadge}>
-                      <Text style={styles.freeBadgeText}>Free to read · {book.source}</Text>
+                  <View key={book.title} style={[styles.card, styles.bookResourceCard]}>
+                    <View style={styles.bookCardHeader}>
+                      <View style={styles.bookCardDetails}>
+                        <Text style={styles.bookTitle}>{book.title}</Text>
+                        <Text style={styles.author}>{book.author}</Text>
+                        <View style={styles.freeBadge}>
+                          <Text style={styles.freeBadgeText}>Free to read · {book.source}</Text>
+                        </View>
+                      </View>
+                      {p === undefined && (
+                        <Pressable
+                          style={[styles.smallBtn, styles.startReadingButton]}
+                          onPress={() => startBook(book)}
+                        >
+                          <Text style={styles.smallBtnText}>Start reading</Text>
+                        </Pressable>
+                      )}
                     </View>
-                    {p === undefined ? (
-                      <Pressable style={styles.smallBtn} onPress={() => startBook(book)}>
-                        <Text style={styles.smallBtnText}>Start reading</Text>
-                      </Pressable>
-                    ) : (
+                    {p !== undefined && (
                       <>
                         <View style={styles.track}>
                           <View style={[styles.fill, { width: `${p}%` }]} />
@@ -434,19 +395,22 @@ export default function Index() {
         {tab === "Weekly Quiz" &&
           (quizCourse === "" ? (
             <>
-              <Text style={styles.title}>Weekly Quiz</Text>
-              <Text style={styles.hint}>
-                {quizzesTaken} of {totalQuizzes} quizzes taken. Pick a course to start.
+              <Text style={[styles.title, styles.centeredText]}>Weekly Quiz</Text>
+              <Text style={[styles.hint, styles.centeredText]}>
+                {quizzesTaken} of {totalQuizzes} courses quizzed. Choose a course, book, and chapter.
+                Every generated quiz has at least {MINIMUM_QUIZ_QUESTIONS} questions.
               </Text>
               <View style={[styles.row, { marginTop: 16 }]}>
-                {Object.keys(QUIZZES).map((name) => (
-                  <Pressable key={name} style={styles.tile} onPress={() => openQuiz(name)}>
-                    <Text style={styles.bookTitle}>{name}</Text>
-                    <Text style={styles.author}>{QUIZZES[name].length} questions</Text>
+                {Object.keys(COURSES).map((name) => (
+                  <Pressable key={name} style={[styles.tile, styles.quizCard]} onPress={() => openQuiz(name)}>
+                    <Text style={[styles.bookTitle, styles.producerName]}>{name}</Text>
+                    <Text style={styles.author}>
+                      {COURSES[name].length} books · {MINIMUM_QUIZ_QUESTIONS}+ questions
+                    </Text>
                     <Text style={styles.quizStatus}>
                       {scores[name] === undefined
                         ? "Not taken"
-                        : `Score: ${scores[name]}/${QUIZZES[name].length}`}
+                        : `Score: ${scores[name].score}/${scores[name].total}`}
                     </Text>
                   </Pressable>
                 ))}
@@ -454,44 +418,129 @@ export default function Index() {
             </>
           ) : (
             <>
-              <Pressable onPress={() => setQuizCourse("")}>
+              <Pressable
+                onPress={() => {
+                  setQuizCourse("");
+                  setQuizBook(null);
+                  setQuizQuestions([]);
+                  setQuizError("");
+                  setAnswers({});
+                  setSubmitted(false);
+                }}
+              >
                 <Text style={styles.back}>‹ All quizzes</Text>
               </Pressable>
               <Text style={styles.title}>{quizCourse} Quiz</Text>
-              {questions.map((item, i) => (
-                <View key={item.q} style={styles.card}>
-                  <Text style={styles.bookTitle}>
-                    {i + 1}. {item.q}
-                  </Text>
-                  {item.options.map((opt, j) => (
-                    <Pressable
-                      key={opt}
-                      disabled={submitted}
-                      onPress={() => setAnswers({ ...answers, [i]: j })}
-                      style={[
-                        styles.option,
-                        answers[i] === j && styles.optionPicked,
-                        submitted && j === item.answer && styles.optionRight,
-                      ]}
-                    >
-                      <Text style={styles.optionText}>{opt}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ))}
-              {submitted ? (
+              {quizBook === null ? (
                 <>
-                  <Text style={styles.score}>
-                    You scored {score} out of {questions.length}
-                  </Text>
-                  <Pressable style={styles.button} onPress={resetQuiz}>
-                    <Text style={styles.buttonText}>Try again</Text>
-                  </Pressable>
+                  <Text style={styles.hint}>Choose a book to generate a quiz from its content.</Text>
+                  {COURSES[quizCourse].map((book) => (
+                    <View key={book.title} style={[styles.card, styles.quizCard]}>
+                      <Text style={styles.bookTitle}>{book.title}</Text>
+                      <Text style={styles.author}>by {book.author}</Text>
+                      <Text style={styles.author}>{book.source}</Text>
+                      <Pressable style={styles.smallBtn} onPress={() => chooseQuizBook(book)}>
+                        <Text style={styles.smallBtnText}>Choose this book</Text>
+                      </Pressable>
+                    </View>
+                  ))}
                 </>
               ) : (
-                <Pressable style={styles.button} onPress={submitQuiz}>
-                  <Text style={styles.buttonText}>Submit answers</Text>
-                </Pressable>
+                <>
+                  <Pressable
+                    onPress={() => {
+                      setQuizBook(null);
+                      setQuizQuestions([]);
+                      setQuizError("");
+                      setAnswers({});
+                      setSubmitted(false);
+                    }}
+                  >
+                    <Text style={styles.back}>‹ Choose a different book</Text>
+                  </Pressable>
+                  <View style={[styles.card, styles.quizCard]}>
+                    <Text style={styles.bookTitle}>{quizBook.title}</Text>
+                    <Text style={styles.author}>by {quizBook.author}</Text>
+                    <Text style={styles.fieldLabel}>Book or chapter URL</Text>
+                    <TextInput
+                      accessibilityLabel="Public book or chapter URL"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="url"
+                      onChangeText={setQuizSourceUrl}
+                      placeholder="Paste a direct public chapter or PDF URL"
+                      placeholderTextColor="#718096"
+                      style={styles.urlInput}
+                      value={quizSourceUrl}
+                    />
+                    <Text style={styles.fieldHint}>
+                      Use a public chapter page or PDF for best results. The quiz is generated from this URL.
+                    </Text>
+                    <Pressable
+                      disabled={isGeneratingQuiz || quizSourceUrl.trim().length === 0}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Generate quiz with at least ${MINIMUM_QUIZ_QUESTIONS} questions`}
+                      style={[
+                        styles.button,
+                        (isGeneratingQuiz || quizSourceUrl.trim().length === 0) && styles.buttonDisabled,
+                      ]}
+                      onPress={generateQuiz}
+                    >
+                      {isGeneratingQuiz ? (
+                        <ActivityIndicator color="#1b2a41" />
+                      ) : (
+                        <Text style={styles.buttonText}>Generate Quiz</Text>
+                      )}
+                    </Pressable>
+                    {quizError !== "" && <Text style={styles.errorText}>{quizError}</Text>}
+                  </View>
+
+                  {questions.map((item, i) => (
+                    <View key={`${i}-${item.q}`} style={[styles.card, styles.quizCard]}>
+                      <Text style={styles.bookTitle}>
+                        {i + 1}. {item.q}
+                      </Text>
+                      {item.options.map((opt, j) => (
+                        <Pressable
+                          key={`${j}-${opt}`}
+                          disabled={submitted}
+                          onPress={() => setAnswers({ ...answers, [i]: j })}
+                          style={[
+                            styles.option,
+                            answers[i] === j && styles.optionPicked,
+                            submitted && j === item.answer && styles.optionRight,
+                          ]}
+                        >
+                          <Text style={styles.optionText}>{opt}</Text>
+                        </Pressable>
+                      ))}
+                      {submitted && <Text style={styles.explanation}>{item.explanation}</Text>}
+                    </View>
+                  ))}
+
+                  {questions.length > 0 &&
+                    (submitted ? (
+                      <>
+                        <Text style={styles.score}>
+                          You scored {score} out of {questions.length}
+                        </Text>
+                        <Pressable style={styles.button} onPress={resetQuiz}>
+                          <Text style={styles.buttonText}>Try again</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <Pressable
+                        disabled={Object.keys(answers).length !== questions.length}
+                        style={[
+                          styles.button,
+                          Object.keys(answers).length !== questions.length && styles.buttonDisabled,
+                        ]}
+                        onPress={submitQuiz}
+                      >
+                        <Text style={styles.buttonText}>Submit answers</Text>
+                      </Pressable>
+                    ))}
+                </>
               )}
             </>
           ))}
@@ -508,26 +557,46 @@ export default function Index() {
               startedBooks.map((b) => {
                 const p = progress[b.title];
                 return (
-                  <View key={b.title} style={styles.card}>
-                    <Text style={styles.bookTitle}>{b.title}</Text>
-                    <Text style={styles.author}>{b.course}</Text>
+                  <View key={b.title} style={[styles.card, styles.readingCard]}>
+                    <View style={styles.readingTitleRow}>
+                      <SymbolView
+                        name={ICONS["Continue Reading"]}
+                        size={20}
+                        tintColor="#1b2a41"
+                        accessible={false}
+                      />
+                      <Text style={styles.bookTitle}>{b.title}</Text>
+                    </View>
+                    <View style={styles.readingDetailRow}>
+                      <SymbolView name={ICONS.author} size={16} tintColor="#52606d" accessible={false} />
+                      <Text style={styles.author}>by {b.author}</Text>
+                    </View>
+                    <View style={styles.readingDetailRow}>
+                      <SymbolView name={ICONS.course} size={16} tintColor="#52606d" accessible={false} />
+                      <Text style={styles.author}>{b.course}</Text>
+                    </View>
+                    <View style={styles.readingDetailRow}>
+                      <SymbolView name={ICONS.source} size={16} tintColor="#52606d" accessible={false} />
+                      <Text style={styles.author}>{b.source}</Text>
+                    </View>
                     <View style={styles.track}>
                       <View style={[styles.fill, { width: `${p}%` }]} />
                     </View>
                     <Text style={styles.author}>{p >= 100 ? "Finished" : `${p}% read`}</Text>
-                    <View style={styles.btnRow}>
-                      <Pressable style={styles.smallBtn} onPress={() => openBook(b)}>
+                    <View style={[styles.btnRow, styles.readingActions]}>
+                      <Pressable style={[styles.smallBtn, styles.iconButton]} onPress={() => openBook(b)}>
+                        <SymbolView
+                          name={ICONS.openBook}
+                          size={16}
+                          tintColor="#fff"
+                          accessible={false}
+                        />
                         <Text style={styles.smallBtnText}>Open book</Text>
                       </Pressable>
                       {p < 100 && (
-                        <>
-                          <Pressable style={styles.smallBtn} onPress={() => addProgress(b.title, 10)}>
-                            <Text style={styles.smallBtnText}>+10%</Text>
-                          </Pressable>
-                          <Pressable style={styles.smallBtn} onPress={() => addProgress(b.title, 100)}>
-                            <Text style={styles.smallBtnText}>Mark finished</Text>
-                          </Pressable>
-                        </>
+                        <Pressable style={styles.smallBtn} onPress={() => addProgress(b.title, 100)}>
+                          <Text style={styles.smallBtnText}>Mark finished</Text>
+                        </Pressable>
                       )}
                       <Pressable onPress={() => removeBook(b.title)}>
                         <Text style={styles.linkText}>Remove</Text>
@@ -588,7 +657,9 @@ export default function Index() {
                     </Text>
                   </View>
                   <Text style={styles.quizStatus}>
-                    {scores[name] === undefined ? "No quiz yet" : `Quiz ${scores[name]}/${QUIZZES[name].length}`}
+                    {scores[name] === undefined
+                      ? "No quiz yet"
+                      : `Quiz ${scores[name].score}/${scores[name].total}`}
                   </Text>
                 </View>
               );
@@ -645,14 +716,20 @@ export default function Index() {
 
             <Text style={styles.sectionTitle}>Produced by</Text>
             <View style={styles.card}>
-              {PRODUCERS.map((name) => (
-                <View key={name} style={styles.producerRow}>
-                  <View style={styles.producerDot}>
-                    <Text style={styles.producerInitial}>{name[0]}</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.producersRow}
+              >
+                {PRODUCERS.map((name) => (
+                  <View key={name} style={styles.producerRow}>
+                    <View style={styles.producerDot}>
+                      <Text style={styles.producerInitial}>{name[0]}</Text>
+                    </View>
+                    <Text style={styles.bookTitle}>{name}</Text>
                   </View>
-                  <Text style={styles.bookTitle}>{name}</Text>
-                </View>
-              ))}
+                ))}
+              </ScrollView>
             </View>
           </>
         )}
@@ -662,9 +739,53 @@ export default function Index() {
           onNavigate={(name) => {
             setTab(name);
             setQuizCourse("");
+            setQuizBook(null);
+            setQuizQuestions([]);
           }}
         />
       </ScrollView>
+
+      <Modal
+        visible={showCoursePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCoursePicker(false)}
+      >
+        <Pressable style={styles.coursePickerOverlay} onPress={() => setShowCoursePicker(false)}>
+          <Pressable style={styles.coursePickerCard} onPress={() => {}}>
+            <View style={styles.coursePickerHeader}>
+              <Text style={styles.coursePickerTitle}>Choose a course</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close course list"
+                onPress={() => setShowCoursePicker(false)}
+                style={styles.coursePickerClose}
+              >
+                <Text style={styles.coursePickerCloseText}>×</Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.coursePickerList}>
+              {Object.keys(COURSES).map((name) => (
+                <Pressable
+                  key={name}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: course === name }}
+                  onPress={() => {
+                    setCourse(name);
+                    setShowCoursePicker(false);
+                  }}
+                  style={[styles.coursePickerOption, course === name && styles.coursePickerOptionSelected]}
+                >
+                  <Text style={course === name ? styles.coursePickerOptionTextSelected : styles.coursePickerOptionText}>
+                    {name}
+                  </Text>
+                  {course === name && <Text style={styles.coursePickerCheck}>Selected</Text>}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Profile details */}
       <Modal
@@ -746,11 +867,21 @@ const styles = StyleSheet.create({
   navbar: {
     paddingTop: 36,
     paddingHorizontal: 14,
+    paddingBottom: 10,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.15)",
   },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 2 },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  content: { flex: 1 },
+  tabBar: {
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 6,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.15)",
+  },
   brand: { flexDirection: "row", alignItems: "center", gap: 8 },
   logo: { width: 34, height: 34, borderRadius: 17 },
   logoText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
@@ -758,31 +889,105 @@ const styles = StyleSheet.create({
   profileName: { color: "#fff", fontSize: 13 },
   avatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#1b2a41", fontWeight: "bold", fontSize: 12 },
-  tab: { paddingVertical: 6, marginRight: 18, borderBottomWidth: 2, borderBottomColor: "transparent" },
+  tabsContainer: { flexDirection: "row", flexGrow: 1, justifyContent: "center", alignItems: "center", gap: 2 },
+  tab: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
   tabActive: { borderBottomColor: "#fff" },
-  tabText: { color: "#cbd5e0", fontSize: 13 },
-  tabTextActive: { color: "#fff", fontSize: 13, fontWeight: "bold" },
+  tabText: { color: "#cbd5e0", fontSize: 11, textAlign: "center" },
+  tabTextActive: { color: "#fff", fontSize: 11, fontWeight: "bold", textAlign: "center" },
 
   container: { padding: 20, flexGrow: 1 },
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 16, color: "#fff" },
+  centeredText: { textAlign: "center" },
+  courseHint: { marginBottom: 14, marginTop: 8 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
-  chip: { borderWidth: 1.5, borderColor: "#fff", borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14 },
-  chipActive: { backgroundColor: "#fff" },
-  chipText: { color: "#fff" },
-  chipTextActive: { color: "#1b2a41", fontWeight: "bold" },
+  courseDropdown: {
+    minHeight: 50,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  courseDropdownText: { color: "#1b2a41", fontSize: 16, fontWeight: "600", flexShrink: 1 },
+  courseDropdownPlaceholder: { color: "#718096", fontSize: 16 },
+  courseDropdownArrow: { color: "#1b2a41", fontSize: 22, marginLeft: 12 },
+  coursePickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  coursePickerCard: {
+    maxHeight: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  coursePickerHeader: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+  coursePickerTitle: { color: "#1b2a41", fontSize: 18, fontWeight: "bold" },
+  coursePickerClose: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  coursePickerCloseText: { color: "#52606d", fontSize: 28, lineHeight: 32 },
+  coursePickerList: { flexGrow: 0, flexShrink: 1 },
+  coursePickerOption: {
+    minHeight: 48,
+    borderBottomWidth: 1,
+    borderBottomColor: "#edf2f7",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  coursePickerOptionSelected: { backgroundColor: "#ebf4ff" },
+  coursePickerOptionText: { color: "#1b2a41", fontSize: 15, flex: 1 },
+  coursePickerOptionTextSelected: { color: "#1b2a41", fontSize: 15, fontWeight: "bold", flex: 1 },
+  coursePickerCheck: { color: "#2b6cb0", fontSize: 12, fontWeight: "bold", marginLeft: 8 },
   hint: { color: "#cbd5e0" },
 
   card: { backgroundColor: "#fff", padding: 16, borderRadius: 8, marginBottom: 10 },
+  bookResourceCard: { backgroundColor: "#eaf4ff" },
+  quizCard: { backgroundColor: "#f1ecff" },
+  readingCard: { backgroundColor: "#e8f5e9" },
   bookTitle: { fontSize: 17, fontWeight: "bold", color: "#1b2a41" },
   author: { color: "#52606d", marginTop: 2 },
+  bookCardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  bookCardDetails: { flex: 1, minWidth: 0 },
+  startReadingButton: { alignSelf: "center", marginTop: 0, flexShrink: 0 },
+  readingTitleRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 4 },
+  readingDetailRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 7 },
+  readingActions: { marginTop: 10 },
+  iconButton: { flexDirection: "row", alignItems: "center", gap: 6 },
 
   option: { borderWidth: 1.5, borderColor: "#cbd5e0", borderRadius: 6, padding: 10, marginTop: 8 },
   optionPicked: { borderColor: "#1b2a41", backgroundColor: "#e2e8f0" },
   optionRight: { borderColor: "#2f855a", backgroundColor: "#c6f6d5" },
   optionText: { color: "#1b2a41" },
+  explanation: { color: "#52606d", marginTop: 10, lineHeight: 20 },
   score: { color: "#fff", fontSize: 18, fontWeight: "bold", marginVertical: 12 },
   button: { backgroundColor: "#fff", padding: 14, borderRadius: 8, alignItems: "center", marginTop: 4 },
+  buttonDisabled: { opacity: 0.6 },
   buttonText: { color: "#1b2a41", fontWeight: "bold" },
+  fieldLabel: { color: "#1b2a41", fontWeight: "bold", marginTop: 14 },
+  urlInput: { borderWidth: 1, borderColor: "#cbd5e0", borderRadius: 8, padding: 12, color: "#1b2a41", marginTop: 6 },
+  fieldHint: { color: "#52606d", lineHeight: 19, marginTop: 6 },
+  errorText: { color: "#9b2c2c", fontWeight: "bold", marginTop: 12 },
 
   track: { height: 8, borderRadius: 4, backgroundColor: "#e2e8f0", marginTop: 10, overflow: "hidden" },
   fill: { height: 8, backgroundColor: "#2f855a" },
@@ -792,7 +997,9 @@ const styles = StyleSheet.create({
   aboutHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
   aboutLogo: { width: 56, height: 56, borderRadius: 28 },
   aboutText: { color: "#52606d", fontSize: 14, lineHeight: 21, marginTop: 4 },
-  producerRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6 },
+  producerRow: { flexDirection: "column", alignItems: "center", gap: 6, paddingVertical: 6 },
+  producersRow: { flexGrow: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
+  producerName: { fontSize: 14, textAlign: "center" },
   producerDot: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#1b2a41", alignItems: "center", justifyContent: "center" },
   producerInitial: { color: "#fff", fontWeight: "bold" },
   adminRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
